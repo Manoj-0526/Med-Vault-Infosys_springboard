@@ -6,13 +6,16 @@ export default function Sidebar({ role }) {
   const menu = {
     PATIENT: [
       { label: "Dashboard", path: "/patient/profile" },
-      { label: "Appointments", path: "/patient/appointments" },
-      { label: "Medical Records", path: "/patient/records" },
+      { label: "Book Appointment", path: "/patient/book" },      // 👈 NEW
+      { label: "Appointments", path: "/patient/appointments" },  // (for later)
+      { label: "Medical Records", path: "/patient/records" },    // (for history)
+      <li><Link to="/patient/appointments">My Appointments</Link></li>
+
     ],
     DOCTOR: [
       { label: "Dashboard", path: "/doctor/profile" },
-      { label: "Appointments", path: "/doctor/appointments" },
-      { label: "Patients", path: "/doctor/patients" },
+      { label: "My Appointments", path: "/doctor/appointments" }, // 👈 doctor page
+      { label: "Patients", path: "/doctor/patients" },            // (future)
     ],
     ADMIN: [
       { label: "Admin Dashboard", path: "/admin" },

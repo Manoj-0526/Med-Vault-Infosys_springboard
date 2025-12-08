@@ -41,52 +41,58 @@ export default function LoginPage() {
         }),
       });
 
-      const text = await res.text();
-
       if (!res.ok) {
-        setMessage(text || "Login failed");
+        const errorText = await res.text();
+        setMessage(errorText || "Login failed");
         setLoading(false);
         return;
       }
 
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        setMessage("Unexpected response from server");
+      const data = await res.json();
+
+      // validate role
+      if (data.role !== selectedRole) {
+        setMessage("Selected role does not match your account role.");
         setLoading(false);
         return;
       }
 
-      // Check if selected role matches actual role from backend
-      if (data.role && data.role !== selectedRole) {
-        setMessage(
-          `Looks like you selected wrong role.`
-        );
-        setLoading(false);
-        return;
-      }
+      setMessage("Login successful ✔");
 
-      setMessage(data.message || "Login successful");
+      // Save basic user info
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("email", data.email);
+      localStorage.setItem("fullName", data.fullName);
 
-      // store user info for dashboards
       localStorage.setItem("medvaultUser", JSON.stringify(data));
 
-      // redirect by role
+      // IF PATIENT — fetch actual patient table ID and store it
       if (data.role === "PATIENT") {
-        navigate("/patient/profile");
-      } else if (data.role === "DOCTOR") {
-        navigate("/doctor/profile");
-      } else if (data.role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/");
+        try {
+          const res2 = await fetch(`http://localhost:8080/api/patient/by-user/${data.userId}`);
+          
+          if (res2.ok) {
+            const patient = await res2.json();
+            localStorage.setItem("patientId", patient.id);
+            console.log("Stored patientId:", patient.id);
+          }
+        } catch (err) {
+          console.log("Cannot fetch patient profile.");
+        }
       }
+
+      // REDIRECT based on role
+      if (data.role === "PATIENT") navigate("/patient/profile");
+      else if (data.role === "DOCTOR") navigate("/doctor/profile");
+      else if (data.role === "ADMIN") navigate("/admin");
+      else navigate("/");
+
     } catch (err) {
-      setMessage("Cannot reach backend");
-    } finally {
-      setLoading(false);
+      setMessage("Cannot reach backend ❌");
     }
+
+    setLoading(false);
   };
 
   return (
@@ -122,10 +128,7 @@ export default function LoginPage() {
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  edge="end"
-                >
+                <IconButton onClick={() => setShowPassword(prev => !prev)}>
                   {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
@@ -140,6 +143,7 @@ export default function LoginPage() {
           margin="normal"
           value={selectedRole}
           onChange={(e) => setSelectedRole(e.target.value)}
+          required
         >
           <MenuItem value="PATIENT">Patient</MenuItem>
           <MenuItem value="DOCTOR">Doctor</MenuItem>
@@ -151,8 +155,8 @@ export default function LoginPage() {
           variant="contained"
           color="primary"
           type="submit"
-          sx={{ mt: 2 }}
           disabled={loading}
+          sx={{ mt: 2 }}
         >
           {loading ? "Logging in..." : "Login"}
         </Button>

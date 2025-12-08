@@ -7,7 +7,8 @@ import com.Medvault.repository.DoctorRepository;
 import com.Medvault.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.Medvault.entity.VerificationStatus;
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/doctor")
 public class DoctorController {
@@ -39,4 +40,37 @@ public class DoctorController {
 
         return ResponseEntity.ok("Doctor profile created — Pending Admin Approval");
     }
+    @PostMapping("/{doctorId}/approve")
+    public ResponseEntity<?> approveDoctor(@PathVariable Long doctorId) {
+        Doctor doctor = doctorRepository.findById(doctorId).orElse(null);
+        if (doctor == null) {
+            return ResponseEntity.badRequest().body("Doctor not found");
+        }
+
+        doctor.setVerificationStatus(VerificationStatus.APPROVED);
+        doctorRepository.save(doctor);
+
+        return ResponseEntity.ok("Doctor Approved");
+    }
+
+    @PostMapping("/{doctorId}/reject")
+    public ResponseEntity<?> rejectDoctor(@PathVariable Long doctorId) {
+        Doctor doctor = doctorRepository.findById(doctorId).orElse(null);
+        if (doctor == null) {
+            return ResponseEntity.badRequest().body("Doctor not found");
+        }
+
+        doctor.setVerificationStatus(VerificationStatus.REJECTED);
+        doctorRepository.save(doctor);
+
+        return ResponseEntity.ok("Doctor Rejected");
+    }
+    @GetMapping("/approved")
+    public ResponseEntity<?> getApprovedDoctors() {
+        return ResponseEntity.ok(
+                doctorRepository.findByVerificationStatus(VerificationStatus.APPROVED)
+        );
+    }
+
+
 }

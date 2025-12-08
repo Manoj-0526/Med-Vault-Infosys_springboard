@@ -1,6 +1,5 @@
 package com.Medvault.controller;
 
-import com.Medvault.dto.PatientProfileRequest;
 import com.Medvault.entity.Patient;
 import com.Medvault.entity.User;
 import com.Medvault.repository.PatientRepository;
@@ -10,33 +9,44 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/patient")
+@CrossOrigin(origins = "http://localhost:3000")
 public class PatientController {
 
-    private final PatientRepository patientRepository;
-    private final UserRepository userRepository;
+    private final PatientRepository patientRepo;
+    private final UserRepository userRepo;
 
-    public PatientController(PatientRepository patientRepository, UserRepository userRepository) {
-        this.patientRepository = patientRepository;
-        this.userRepository = userRepository;
+    public PatientController(PatientRepository patientRepo, UserRepository userRepo) {
+        this.patientRepo = patientRepo;
+        this.userRepo = userRepo;
     }
 
-    @PostMapping("/{userId}/create-profile")
-    public ResponseEntity<?> createProfile(@PathVariable Long userId,
-                                           @RequestBody PatientProfileRequest req) {
+    @PostMapping("/create-profile/{userId}")
+    public ResponseEntity<?> createProfile(@PathVariable Long userId) {
 
-        User user = userRepository.findById(userId).orElse(null);
+        User user = userRepo.findById(userId).orElse(null);
         if (user == null) {
             return ResponseEntity.badRequest().body("User not found");
         }
 
+        Patient existing = patientRepo.findByUser_Id(userId);
+        if (existing != null) {
+            return ResponseEntity.ok("Patient profile already exists");
+        }
+
         Patient patient = new Patient();
         patient.setUser(user);
-        patient.setDob(req.getDob());
-        patient.setGender(req.getGender());
-        patient.setBloodGroup(req.getBloodGroup());
 
-        patientRepository.save(patient);
+        patientRepo.save(patient);
 
         return ResponseEntity.ok("Patient profile created");
+    }
+
+    @GetMapping("/profile/{userId}")
+    public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+        Patient patient = patientRepo.findByUser_Id(userId);
+        if (patient == null) {
+            return ResponseEntity.badRequest().body("No profile found");
+        }
+        return ResponseEntity.ok(patient);
     }
 }
